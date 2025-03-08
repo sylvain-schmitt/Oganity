@@ -60,7 +60,7 @@ const updateStyles = (newStyles) => {
             <div class="toolbar-controls">
                 <div class="relative">
                     <select v-model="styles.fontSize" @change="updateStyles({ fontSize: styles.fontSize })"
-                        class="block w-full bg-white rounded-md shadow-sm border border-gray-300 text-sm py-1.5 px-3 pr-8 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none">
+                        class="block w-full bg-white rounded-md shadow-sm border border-gray-300 text-sm py-1.5 px-3 pr-8 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option v-for="option in [
                             { value: 12, label: 'Très petit' },
                             { value: 14, label: 'Petit' },
@@ -104,3 +104,16 @@ const updateStyles = (newStyles) => {
         </div>
     </div>
 </template>
+<style scoped>
+/* Supprimer la flèche native du select dans différents navigateurs */
+select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: none !important;
+}
+
+select::-ms-expand {
+    display: none !important;
+}
+</style>

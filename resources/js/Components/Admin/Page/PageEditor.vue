@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, provide, nextTick } from 'vue';
+import { ref, computed, watch, provide, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 import BlockPalette from './BlockPalette.vue';
 import BlockEditor from './BlockEditor.vue';
@@ -57,104 +57,96 @@ const blockTypes = [
         label: 'Texte',
         icon: 'text_fields',
         description: 'Ajouter un paragraphe de texte'
-    },
-    {
-        type: 'image',
-        label: 'Image',
-        icon: 'image',
-        description: 'Ajouter une image',
-        disabled: true
-    },
-    {
-        type: 'button',
-        label: 'Bouton',
-        icon: 'smart_button',
-        description: 'Ajouter un bouton cliquable',
-        disabled: true
     }
+    // Autres types de blocs à ajouter ici
 ];
 
-// Ajouter un nouveau bloc
-const addBlock = (type) => {
-    // Si le type est désactivé, ne rien faire
-    if (blockTypes.find(bt => bt.type === type)?.disabled) {
-        return;
-    }
+// Générer un ID unique pour un nouveau bloc
+const generateUniqueId = () => {
+    return 'block_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+};
 
-    // Créer un nouvel ID unique pour le bloc
-    const blockId = Date.now().toString();
+// État pour contrôler l'affichage du menu déroulant
+const showAddBlockMenu = ref(false);
 
-    // Créer un nouveau bloc selon le type
-    let newBlock;
+// Fonction pour basculer l'affichage du menu
+const toggleAddBlockMenu = () => {
+    showAddBlockMenu.value = !showAddBlockMenu.value;
+};
 
-    if (type === 'title') {
-        newBlock = {
-            id: blockId,
-            type: 'title',
-            content: { content: '' } // Contenu vide pour utiliser le placeholder
-        };
-
-        // Initialiser les styles pour ce bloc
-        // Si un H1 existe déjà, on utilise H2 par défaut
-        styles.value[blockId] = {
-            color: "#000000",
-            textAlign: "left",
-            fontSize: 24,
-            tag: hasH1.value ? 'h2' : 'h1' // Utiliser H1 si aucun H1 n'existe, sinon H2
-        };
-    } else if (type === 'text') {
-        newBlock = {
-            id: blockId,
-            type: 'text',
-            content: { content: '' } // Contenu vide pour utiliser le placeholder
-        };
-
-        // Initialiser les styles pour ce bloc
-        styles.value[blockId] = {
-            color: "#333333",
-            textAlign: "left",
-            fontSize: 16,
-            fontWeight: 'normal',
-            lineHeight: '1.6'
-        };
-    }
-    // Ajouter d'autres types de blocs ici
-
-    // Ajouter le bloc au contenu
-    if (newBlock) {
-        content.value.push(newBlock);
-        emitUpdate();
-
-        // Activer le nouveau bloc pour édition
-        nextTick(() => {
-            activeBlockId.value = blockId;
-        });
+// Fonction pour fermer le menu lorsque l'utilisateur clique en dehors
+const closeMenuOnClickOutside = (event) => {
+    if (showAddBlockMenu.value) {
+        showAddBlockMenu.value = false;
     }
 };
 
-// Mettre à jour un bloc existant
+// Ajouter et supprimer l'écouteur d'événements pour les clics en dehors
+onMounted(() => {
+    document.addEventListener('click', closeMenuOnClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', closeMenuOnClickOutside);
+});
+
+// Ajouter un nouveau bloc
+const addBlock = (type) => {
+    const newBlock = {
+        id: generateUniqueId(),
+        type: type,
+        content: {}
+    };
+
+    // Initialiser les styles par défaut selon le type de bloc
+    switch (type) {
+        case 'title':
+            styles.value[newBlock.id] = {
+                tag: hasH1.value ? 'h2' : 'h1',
+                textAlign: 'left',
+                color: '#000000',
+                fontSize: 24
+            };
+            newBlock.content = { content: '' };
+            break;
+        case 'text':
+            styles.value[newBlock.id] = {
+                textAlign: 'left',
+                color: '#333333',
+                fontSize: 16,
+                fontWeight: 'normal',
+                lineHeight: '1.6'
+            };
+            newBlock.content = { content: '' };
+            break;
+        // Ajouter d'autres types de blocs ici
+    }
+
+    // Ajouter le bloc au contenu
+    content.value.push(newBlock);
+
+    // Activer le nouveau bloc pour édition
+    nextTick(() => {
+        activeBlockId.value = newBlock.id;
+    });
+
+    // Émettre les changements
+    emitChanges();
+};
+
+// Mettre à jour le contenu d'un bloc
 const updateBlockContent = (blockId, newContent) => {
     const blockIndex = content.value.findIndex(block => block.id === blockId);
     if (blockIndex !== -1) {
         content.value[blockIndex].content = newContent;
-        emitUpdate();
+        emitChanges();
     }
 };
 
 // Mettre à jour les styles d'un bloc
 const updateBlockStyles = (blockId, newStyles) => {
-    // Vérifier si les styles existent déjà pour ce bloc
-    if (!styles.value[blockId]) {
-        styles.value[blockId] = {};
-    }
-
-    // Mettre à jour les styles avec les nouvelles valeurs
-    styles.value[blockId] = {
-        ...styles.value[blockId],
-        ...newStyles
-    };
-
-    emitUpdate();
+    styles.value[blockId] = { ...styles.value[blockId], ...newStyles };
+    emitChanges();
 };
 
 // Supprimer un bloc
@@ -168,7 +160,7 @@ const deleteBlock = (blockId) => {
             activeBlockId.value = null;
         }
 
-        emitUpdate();
+        emitChanges();
     }
 };
 
@@ -177,42 +169,54 @@ const activateBlock = (blockId) => {
     activeBlockId.value = blockId;
 };
 
-// Émettre les mises à jour
-const emitUpdate = () => {
-    emit('update:modelValue', {
+// Émettre les changements
+const emitChanges = () => {
+    const updatedValue = {
         content: content.value,
         styles: styles.value
-    });
-    emit('content-change');
+    };
+
+    emit('update:modelValue', updatedValue);
+    emit('content-change', updatedValue);
+};
+
+// Gérer le réordonnancement des blocs
+const handleReorder = () => {
+    emitChanges();
 };
 </script>
 
 <template>
     <div class="page-editor">
-        <!-- Palette de blocs -->
-        <BlockPalette :block-types="blockTypes" :disabled="false" @add-block="addBlock" />
+        <BlockPalette :block-types="blockTypes" @add-block="addBlock" />
 
-        <!-- Éditeur de blocs -->
-        <div class="bg-white shadow rounded-lg p-4">
-            <h3 class="text-sm font-medium text-gray-700 mb-3">Contenu de la page</h3>
-            <div class="space-y-4">
-                <draggable v-model="content" group="blocks" item-key="id" handle=".drag-handle"
-                    ghost-class="ghost-block" @change="emitUpdate">
-                    <template #item="{ element: block }">
-                        <BlockEditor :block="block" :styles="styles[block.id] || {}"
-                            :is-active="activeBlockId === block.id" :has-h1="hasH1" @update:content="updateBlockContent"
-                            @update:styles="updateBlockStyles" @delete="deleteBlock" @activate="activateBlock" />
-                    </template>
-                </draggable>
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="p-4">
+                <div v-if="content.length === 0" class="text-center py-8">
+                    <p class="text-gray-500 mb-4">Aucun bloc n'a été ajouté à cette page.</p>
+                    <button type="button" @click="addBlock('title')"
+                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+                        Ajouter un titre
+                    </button>
+                </div>
 
-                <!-- Message si aucun contenu -->
-                <div v-if="content.length === 0" class="text-center py-8 text-gray-500">
-                    <p class="mb-2">Aucun contenu. Ajoutez des blocs pour créer votre page.</p>
-                    <div class="flex justify-center space-x-2">
-                        <button v-for="blockType in blockTypes.filter(bt => !bt.disabled)" :key="blockType.type"
-                            @click="addBlock(blockType.type)"
-                            class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">
-                            <span class="material-icons text-xs mr-1 align-text-bottom">{{ blockType.icon }}</span>
+                <div v-else>
+                    <draggable v-model="content" group="blocks" item-key="id" handle=".drag-handle"
+                        ghost-class="ghost-block" @end="handleReorder">
+                        <template #item="{ element: block }">
+                            <BlockEditor :block="block" :styles="styles[block.id] || {}"
+                                :is-active="activeBlockId === block.id" :has-h1="hasH1"
+                                @update:content="updateBlockContent" @update:styles="updateBlockStyles"
+                                @delete="deleteBlock" @activate="activateBlock" />
+                        </template>
+                    </draggable>
+
+                    <!-- Boutons simples pour ajouter un bloc -->
+                    <div class="flex justify-center mt-4 space-x-2">
+                        <button v-for="blockType in blockTypes" :key="blockType.type"
+                            @click.prevent="addBlock(blockType.type)"
+                            class="flex items-center justify-center px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md transition-colors">
+                            <span class="material-icons text-sm mr-1">{{ blockType.icon }}</span>
                             {{ blockType.label }}
                         </button>
                     </div>
@@ -253,17 +257,29 @@ const emitUpdate = () => {
 }
 
 /* Supprimer la flèche native du select dans différents navigateurs */
-select {
+:deep(select) {
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
     appearance: none !important;
     background-image: none !important;
 }
 
-select::-ms-expand {
+:deep(select::-ms-expand) {
     display: none !important;
 }
 
 /* Ajout d'icônes Material Design */
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+/* Animation pour le menu déroulant */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
 </style>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 
 const props = defineProps({
     modelValue: Object,
@@ -13,77 +13,38 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "update:styles"]);
 
-// Contenu local pour l'édition
-const localContent = ref(props.modelValue?.content || "");
-
-// Styles locaux pour l'édition
-const localStyles = ref({
+// Calculer les styles CSS
+const textStyles = computed(() => ({
     color: props.styles?.color || "#333333",
     textAlign: props.styles?.textAlign || "left",
-    fontSize: props.styles?.fontSize || 16,
+    fontSize: `${props.styles?.fontSize || 16}px`,
     fontWeight: props.styles?.fontWeight || 'normal',
     lineHeight: props.styles?.lineHeight || '1.6',
     fontFamily: props.styles?.fontFamily || 'inherit'
-});
-
-// Surveiller les changements des props
-watch(() => props.modelValue, (newValue) => {
-    if (newValue) {
-        localContent.value = newValue.content || "";
-    }
-}, { deep: true });
-
-watch(() => props.styles, (newValue) => {
-    if (newValue) {
-        localStyles.value = {
-            color: newValue.color || "#333333",
-            textAlign: newValue.textAlign || "left",
-            fontSize: newValue.fontSize || 16,
-            fontWeight: newValue.fontWeight || 'normal',
-            lineHeight: newValue.lineHeight || '1.6',
-            fontFamily: newValue.fontFamily || 'inherit'
-        };
-    }
-}, { deep: true });
-
-// Calculer les styles CSS
-const textStyles = computed(() => ({
-    color: localStyles.value.color,
-    textAlign: localStyles.value.textAlign,
-    fontSize: `${localStyles.value.fontSize}px`,
-    fontWeight: localStyles.value.fontWeight,
-    lineHeight: localStyles.value.lineHeight,
-    fontFamily: localStyles.value.fontFamily
 }));
 
 // Mettre à jour le contenu
 const updateContent = (event) => {
-    localContent.value = event.target.value;
-    emit("update:modelValue", { content: localContent.value });
+    const newContent = { ...props.modelValue, content: event.target.innerHTML };
+    emit("update:modelValue", newContent);
 };
 
 // Mettre à jour les styles
 const updateStyles = () => {
-    emit("update:styles", localStyles.value);
+    emit("update:styles", {
+        color: textStyles.value.color,
+        textAlign: textStyles.value.textAlign,
+        fontSize: textStyles.value.fontSize,
+        fontWeight: textStyles.value.fontWeight,
+        lineHeight: textStyles.value.lineHeight,
+        fontFamily: textStyles.value.fontFamily
+    });
 };
 </script>
 
 <template>
-    <div>
-        <!-- Mode édition -->
-        <template v-if="!readonly">
-            <div class="mb-2">
-                <textarea v-model="localContent" @input="updateContent" rows="4"
-                    class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    :style="textStyles" placeholder="Saisissez votre texte ici..."></textarea>
-            </div>
-        </template>
-
-        <!-- Mode lecture seule (affichage) -->
-        <template v-else>
-            <p :style="textStyles" class="whitespace-pre-wrap">
-                {{ localContent }}
-            </p>
-        </template>
+    <div :style="textStyles" class="prose max-w-none break-words" :contenteditable="!readonly" @blur="updateContent">
+        <div v-if="!modelValue?.content" class="text-gray-400">Saisissez votre texte ici...</div>
+        <div v-else v-html="modelValue.content"></div>
     </div>
 </template>

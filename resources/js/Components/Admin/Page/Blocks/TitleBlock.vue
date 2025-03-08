@@ -23,15 +23,16 @@ const titleStyles = computed(() => ({
     fontFamily: props.styles?.fontFamily || 'inherit'
 }));
 
-// Contenu du titre
-const content = computed(() => props.modelValue?.content || "");
-
-// Tag HTML à utiliser
-const tag = computed(() => props.styles?.tag || "h2");
+// Mettre à jour le contenu
+const updateContent = (event) => {
+    const newContent = { ...props.modelValue, content: event.target.innerText };
+    emit("update:modelValue", newContent);
+};
 </script>
 
 <template>
-    <component :is="tag" :style="titleStyles" class="break-words">
-        {{ content || 'Titre' }}
+    <component :is="styles?.tag || 'h2'" :style="titleStyles" class="break-words" :contenteditable="!readonly"
+        @blur="updateContent" @keydown.enter.prevent>
+        {{ modelValue?.content || 'Titre' }}
     </component>
 </template>
