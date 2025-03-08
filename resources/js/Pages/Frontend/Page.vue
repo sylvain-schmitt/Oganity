@@ -8,6 +8,7 @@ import DefaultFooter from '@/Layouts/Templates/Footers/DefaultFooter.vue'
 import FullWidthFooter from '@/Layouts/Templates/Footers/FullWidthFooter.vue'
 import SidebarFooter from '@/Layouts/Templates/Footers/SidebarFooter.vue'
 import TitleBlock from '@/Components/Admin/Page/Blocks/TitleBlock.vue'
+import TextBlock from '@/Components/Admin/Page/Blocks/TextBlock.vue'
 
 const props = defineProps({
     page: {
@@ -38,6 +39,15 @@ const renderBlock = (block) => {
         case 'title':
             return {
                 component: TitleBlock,
+                props: {
+                    modelValue: block.content,
+                    styles: props.page.styles?.[block.id] || {},
+                    readonly: true
+                }
+            };
+        case 'text':
+            return {
+                component: TextBlock,
                 props: {
                     modelValue: block.content,
                     styles: props.page.styles?.[block.id] || {},

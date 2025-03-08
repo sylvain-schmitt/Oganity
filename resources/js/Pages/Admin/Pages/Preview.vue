@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import TitleBlock from '@/Components/Admin/Page/Blocks/TitleBlock.vue'
+import TextBlock from '@/Components/Admin/Page/Blocks/TextBlock.vue'
 
 const props = defineProps({
     page: {
@@ -45,8 +46,8 @@ const renderBlock = (block) => {
     if (!block || !block.type) return null;
 
     const blockStyles = props.page.styles?.[block.id] || {};
-    
-    // S'assurer que les styles ont une balise par défaut
+
+    // S'assurer que les styles ont une balise par défaut pour les titres
     if (block.type === 'title' && !blockStyles.tag) {
         blockStyles.tag = 'h2';
     }
@@ -55,6 +56,16 @@ const renderBlock = (block) => {
         case 'title':
             return {
                 component: TitleBlock,
+                props: {
+                    modelValue: block.content,
+                    styles: blockStyles,
+                    blockId: block.id,
+                    readonly: true
+                }
+            };
+        case 'text':
+            return {
+                component: TextBlock,
                 props: {
                     modelValue: block.content,
                     styles: blockStyles,
