@@ -28,13 +28,17 @@ const props = defineProps({
     }
 })
 
+// État pour suivre si des modifications ont été apportées
+const hasContentChanged = ref(false);
+
+// Initialiser le formulaire avec les données de la page
 const form = useForm({
-    title: props.page.title,
-    slug: props.page.slug,
+    title: props.page.title || '',
+    slug: props.page.slug || '',
     content: props.page.content || [],
     styles: props.page.styles || {},
-    template: props.page.template,
-    status: props.page.status,
+    template: props.page.template || '',
+    status: props.page.status || 'draft',
     meta_title: props.page.meta_title || '',
     meta_description: props.page.meta_description || '',
     meta_keywords: props.page.meta_keywords || '',
@@ -68,6 +72,7 @@ const currentTab = ref('main')
 const submit = () => {
     form.put(route('admin.pages.update', props.page.id), {
         onSuccess: () => {
+            hasContentChanged.value = false;
             router.visit(route('admin.pages.index'))
         }
     })
@@ -104,6 +109,10 @@ const hasChanges = computed(() => {
 
     // Comparaison spéciale pour le contenu (tableau d'objets)
     if (JSON.stringify(form.content) !== JSON.stringify(props.page.content)) return true;
+    if (JSON.stringify(form.styles) !== JSON.stringify(props.page.styles)) return true;
+
+    // Prendre en compte hasContentChanged
+    if (hasContentChanged.value) return true;
 
     return false;
 })
@@ -117,15 +126,26 @@ const handleCancel = () => {
     }
 }
 
-// Confirmation de l'abandon
+// Fonction pour confirmer l'annulation
 const confirmCancel = () => {
     router.visit(route('admin.pages.index'))
 }
 
+// Fonction pour suivre les modifications du contenu
+const onContentChanged = (changed) => {
+    hasContentChanged.value = changed;
+}
+
 // Réinitialise l'erreur quand un champ est modifié
 const clearError = (fieldName) => {
-    form.clearErrors(fieldName)
+    form.clearErrors(fieldName);
 }
+
+// Surveille les modifications des champs pour effacer les erreurs
+watch(() => form.title, () => clearError('title'));
+watch(() => form.content, () => clearError('content'));
+watch(() => form.template, () => clearError('template'));
+watch(() => form.status, () => clearError('status'));
 </script>
 
 <template>
@@ -154,7 +174,8 @@ const clearError = (fieldName) => {
                                 <transition name="fade" mode="out-in">
                                     <div :key="currentTab">
                                         <ContentTab v-if="currentTab === 'main'" :form="form" :templates="templates"
-                                            :statuses="statuses" :clear-error="clearError" v-model="pageContent" />
+                                            :statuses="statuses" :clear-error="clearError" v-model="pageContent"
+                                            :initial-data="props.page" @content-changed="onContentChanged" />
                                         <SeoTab v-if="currentTab === 'seo'" :form="form" :clear-error="clearError" />
                                         <OpenGraphTab v-if="currentTab === 'social'" :form="form"
                                             :clear-error="clearError" />

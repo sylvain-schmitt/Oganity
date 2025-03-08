@@ -127,7 +127,7 @@ const handleCancel = () => {
     if (isFormDirty.value) {
         showConfirmModal.value = true
     } else {
-        window.location = route('admin.pages.index')
+        router.visit(route('admin.pages.index'))
     }
 }
 

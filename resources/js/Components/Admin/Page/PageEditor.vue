@@ -68,15 +68,17 @@ const generateUniqueId = () => {
 
 // État pour contrôler l'affichage du menu déroulant
 const showAddBlockMenu = ref(false);
+const menuRef = ref(null);
 
 // Fonction pour basculer l'affichage du menu
-const toggleAddBlockMenu = () => {
+const toggleAddBlockMenu = (event) => {
+    event.stopPropagation();
     showAddBlockMenu.value = !showAddBlockMenu.value;
 };
 
 // Fonction pour fermer le menu lorsque l'utilisateur clique en dehors
 const closeMenuOnClickOutside = (event) => {
-    if (showAddBlockMenu.value) {
+    if (menuRef.value && !menuRef.value.contains(event.target) && showAddBlockMenu.value) {
         showAddBlockMenu.value = false;
     }
 };
@@ -89,6 +91,13 @@ onMounted(() => {
 onBeforeUnmount(() => {
     document.removeEventListener('click', closeMenuOnClickOutside);
 });
+
+// Ajouter un bloc et fermer le menu
+const addBlockAndCloseMenu = (type, event) => {
+    event.stopPropagation();
+    addBlock(type);
+    showAddBlockMenu.value = false;
+};
 
 // Ajouter un nouveau bloc
 const addBlock = (type) => {
@@ -211,15 +220,34 @@ const handleReorder = () => {
                         </template>
                     </draggable>
 
-                    <!-- Boutons simples pour ajouter un bloc -->
-                    <div class="flex justify-center mt-4 space-x-2">
-                        <button v-for="blockType in blockTypes" :key="blockType.type"
-                            @click.prevent="addBlock(blockType.type)"
-                            class="flex items-center justify-center px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md transition-colors">
-                            <span class="material-icons text-sm mr-1">{{ blockType.icon }}</span>
-                            {{ blockType.label }}
+                    <!-- Bouton pour ouvrir le modal -->
+                    <div class="flex justify-center mt-4">
+                        <button type="button" @click="toggleAddBlockMenu"
+                            class="flex items-center justify-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md transition-colors">
+                            <span class="material-icons text-sm mr-1">add</span>
+                            Ajouter un bloc
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal pour sélectionner le type de bloc -->
+        <div v-if="showAddBlockMenu" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="bg-white rounded-lg shadow-lg p-4 w-64">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-medium text-gray-700">Choisir un type de bloc</h3>
+                    <button @click="showAddBlockMenu = false" class="text-gray-500 hover:text-gray-700">
+                        <span class="material-icons text-sm">close</span>
+                    </button>
+                </div>
+                <div class="space-y-2">
+                    <button v-for="blockType in blockTypes" :key="blockType.type"
+                        @click="addBlockAndCloseMenu(blockType.type, $event)"
+                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center rounded-md">
+                        <span class="material-icons text-sm mr-2 text-blue-500">{{ blockType.icon }}</span>
+                        {{ blockType.label }}
+                    </button>
                 </div>
             </div>
         </div>

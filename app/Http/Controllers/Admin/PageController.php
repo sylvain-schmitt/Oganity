@@ -64,14 +64,23 @@ class PageController extends Controller
      */
     public function store(StorePageRequest $request)
     {
-        $validatedData = $request->validated();
-
-        // Assurez-vous que content et styles sont des tableaux/objets JSON valides
-        $validatedData['content'] = $validatedData['content'] ?? [];
-        $validatedData['styles'] = $validatedData['styles'] ?? [];
-
+        $validated = $request->validated();
+        
+        // Vérifier si le contenu est vide ou si tous les blocs ont un contenu vide
+        $hasContent = false;
+        foreach ($validated['content'] as $block) {
+            if (!empty($block['content'])) {
+                $hasContent = true;
+                break;
+            }
+        }
+        
+        if (!$hasContent) {
+            return back()->withErrors(['content' => 'Le contenu de la page ne peut pas être vide.']);
+        }
+        
         $page = Page::create([
-            ...$validatedData,
+            ...$validated,
             'user_id' => $request->user()->id
         ]);
 
@@ -112,22 +121,25 @@ class PageController extends Controller
      */
     public function update(UpdatePageRequest $request, Page $page)
     {
-        $validatedData = $request->validated();
-
-        // Assurez-vous que content et styles sont des tableaux/objets JSON valides
-        if (isset($validatedData['content']) && is_null($validatedData['content'])) {
-            $validatedData['content'] = [];
+        $validated = $request->validated();
+        
+        // Vérifier si le contenu est vide ou si tous les blocs ont un contenu vide
+        $hasContent = false;
+        foreach ($validated['content'] as $block) {
+            if (!empty($block['content'])) {
+                $hasContent = true;
+                break;
+            }
         }
-
-        if (isset($validatedData['styles']) && is_null($validatedData['styles'])) {
-            $validatedData['styles'] = [];
+        
+        if (!$hasContent) {
+            return back()->withErrors(['content' => 'Le contenu de la page ne peut pas être vide.']);
         }
-
-        $page->update($validatedData);
-
-        return redirect()
-            ->route('admin.pages.index')
-            ->with('success', 'La page a été mise à jour avec succès.');
+        
+        $page->update($validated);
+        
+        return redirect()->route('admin.pages.index')
+            ->with('success', 'Page mise à jour avec succès.');
     }
 
     /**

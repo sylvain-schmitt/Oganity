@@ -32,7 +32,7 @@ class UpdatePageRequest extends FormRequest
                 Rule::unique('pages')->ignore($this->route('page')),
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'
             ],
-            'content' => 'present|array',
+            'content' => 'present|array|min:1',
             'styles' => 'present|array',
             'template' => 'present|string',
             'status' => 'present|string|in:draft,published',
@@ -72,6 +72,7 @@ class UpdatePageRequest extends FormRequest
             'slug.regex' => 'Le slug ne doit contenir que des lettres minuscules, des chiffres et des tirets',
             'content.present' => 'Le contenu est requis',
             'content.array' => 'Le contenu doit être un tableau',
+            'content.min' => 'Veuillez ajouter au moins un bloc de contenu',
             'styles.present' => 'Les styles sont requis',
             'styles.array' => 'Les styles doivent être un tableau',
             'template.present' => 'Le template est requis',

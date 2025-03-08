@@ -37,7 +37,7 @@ class StorePageRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'min:3', 'max:255'],
-            'content' => ['nullable', 'array'],
+            'content' => ['required', 'array', 'min:1'],
             'styles' => ['nullable', 'array'],
             'template' => ['string', 'in:default,full-width,sidebar'],
             'status' => ['string', 'in:draft,published'],
@@ -109,6 +109,11 @@ class StorePageRequest extends FormRequest
             'sort_order.integer' => 'L\'ordre d\'affichage doit être un nombre entier',
             'sort_order.min' => 'L\'ordre d\'affichage doit être supérieur ou égal à 0',
             'parent_id.exists' => 'La page parente sélectionnée n\'existe pas',
+
+            // Contenu
+            'content.required' => 'Le contenu est obligatoire',
+            'content.array' => 'Le contenu doit être un tableau',
+            'content.min' => 'Veuillez ajouter au moins un bloc de contenu',
         ];
     }
 }
