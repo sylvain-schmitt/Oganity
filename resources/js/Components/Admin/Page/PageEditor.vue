@@ -28,13 +28,15 @@ const hasH1 = computed(() => {
     });
 });
 
-// Fournir la fonction pour vérifier si un H1 existe
-provide('checkH1Exists', () => hasH1.value);
-
-// Fournir une fonction pour vérifier si le bloc actuel est un H1
-provide('currentBlockIsH1', (blockId) => {
+// Vérifier si un bloc spécifique est un H1
+const currentBlockIsH1 = (blockId) => {
+    if (!blockId) return false;
     return styles.value[blockId]?.tag === 'h1';
-});
+};
+
+// Fournir les fonctions de vérification H1 aux composants enfants
+provide('checkH1Exists', () => hasH1.value);
+provide('currentBlockIsH1', currentBlockIsH1);
 
 // Surveiller les changements du modelValue
 watch(() => props.modelValue, (newValue) => {
@@ -255,6 +257,9 @@ const handleReorder = () => {
 </template>
 
 <style scoped>
+/* Ajout d'icônes Material Design */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
 .page-editor {
     width: 100%;
 }
@@ -295,9 +300,6 @@ const handleReorder = () => {
 :deep(select::-ms-expand) {
     display: none !important;
 }
-
-/* Ajout d'icônes Material Design */
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
 /* Animation pour le menu déroulant */
 .fade-enter-active,
